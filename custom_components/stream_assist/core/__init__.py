@@ -27,7 +27,7 @@ from .stream import Stream
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = "stream_assist"
+DOMAIN = "wake_and_stt"
 EVENTS = ["wake", "stt", "intent", "tts"]
 
 
@@ -93,21 +93,14 @@ async def assist_run(
         # get default pipeline
         pipeline = assist_pipeline.async_get_pipeline(hass)
 
-    if "start_stage" not in assist:
-        # auto select start stage
-        if pipeline.wake_word_entity:
-            assist["start_stage"] = PipelineStage.WAKE_WORD
-        elif pipeline.stt_engine:
-            assist["start_stage"] = PipelineStage.STT
-        else:
-            raise Exception("Unknown start_stage")
+    # Set start_stage to WAKE_WORD if wake word entity exists, otherwise STT
+    if pipeline.wake_word_entity:
+        assist["start_stage"] = PipelineStage.WAKE_WORD
+    else:
+        assist["start_stage"] = PipelineStage.STT
 
-    if "end_stage" not in assist:
-        # auto select end stage
-        if pipeline.tts_engine:
-            assist["end_stage"] = PipelineStage.TTS
-        else:
-            assist["end_stage"] = PipelineStage.INTENT
+    # Set end_stage to STT to skip intent and TTS stages
+    assist["end_stage"] = PipelineStage.STT
 
     player_entity_id = data.get("player_entity_id")
 
@@ -138,8 +131,8 @@ async def assist_run(
         hass,
         context=context,
         pipeline=pipeline,
-        start_stage=assist["start_stage"],  # wake_word, stt, intent, tts
-        end_stage=assist["end_stage"],  # wake_word, stt, intent, tts
+        start_stage=assist["start_stage"],  # wake_word or stt
+        end_stage=assist["end_stage"],  # stt
         event_callback=internal_event_callback,
         tts_audio_output=assist.get("tts_audio_output"),  # None, wav, mp3
         wake_word_settings=new(WakeWordSettings, assist.get("wake_word_settings")),
@@ -158,8 +151,8 @@ async def assist_run(
             channel=stt.AudioChannels.CHANNEL_MONO,
         ),
         stt_stream=stt_stream,
-        intent_input=assist.get("intent_input"),
-        tts_input=assist.get("tts_input"),
+        intent_input=None,  # Disable intent input
+        tts_input=None,     # Disable TTS input
         conversation_id=assist.get("conversation_id"),
         device_id=assist.get("device_id"),
     )
@@ -193,7 +186,7 @@ def play_media(hass: HomeAssistant, entity_id: str, media_id: str, media_type: s
 
     # hass.services.call will block Hass
     coro = hass.services.async_call("media_player", "play_media", service_data)
-    hass.async_create_background_task(coro, "stream_assist_play_media")
+    hass.async_create_background_task(coro, "wake_and_stt_play_media")
 
 
 def run_forever(
@@ -225,8 +218,8 @@ def run_forever(
             except Exception as e:
                 _LOGGER.debug(f"run_assist error {type(e)}: {e}")
 
-    hass.async_create_background_task(run_stream(), "stream_assist_run_stream")
-    hass.async_create_background_task(run_assist(), "stream_assist_run_assist")
+    hass.async_create_background_task(run_stream(), "wake_and_stt_run_stream")
+    hass.async_create_background_task(run_assist(), "wake_and_stt_run_assist")
 
     return stt_stream.close
 
