@@ -17,15 +17,14 @@ PLATFORMS = (Platform.SENSOR, Platform.SWITCH)
 async def async_setup(hass: HomeAssistant, config: ConfigType):
     async def run(call: ServiceCall) -> ServiceResponse:
         stt_stream = Stream()
-    
+
         try:
             coro = stream_run(hass, call.data, stt_stream=stt_stream)
             hass.async_create_task(coro)
-    
-            # Process STT stream only
-            await stt_stream.process()
-    
-            return {"success": True}
+
+            return await assist_run(
+                hass, call.data, context=call.context, stt_stream=stt_stream
+            )
         except Exception as e:
             _LOGGER.error("stream_assist.run", exc_info=e)
             return {"error": {"type": str(type(e)), "message": str(e)}}
