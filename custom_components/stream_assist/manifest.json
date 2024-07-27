@@ -1,6 +1,6 @@
 {
   "domain": "wake_and_stt",
-  "name": "Stream Assist",
+  "name": "Wake and STT",
   "codeowners": [
     "@trfife"
   ],
