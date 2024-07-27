@@ -24,8 +24,10 @@ async def async_setup_entry(
             continue
         if event == "stt" and not pipeline.stt_engine:
             break
-        if event == "tts" and not pipeline.tts_engine:
+        if event == "intent" or event == "tts":
             continue
+        #if event == "tts" and not pipeline.tts_engine:
+        #    continue
         entities.append(StreamAssistSensor(config_entry, event))
 
     async_add_entities(entities)
