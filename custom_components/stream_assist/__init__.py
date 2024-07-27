@@ -27,7 +27,7 @@ from .stream import Stream
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = "stream_assist"
+DOMAIN = "wake_and_stt"
 EVENTS = ["wake", "stt", "intent", "tts"]
 
 
@@ -186,7 +186,7 @@ def play_media(hass: HomeAssistant, entity_id: str, media_id: str, media_type: s
 
     # hass.services.call will block Hass
     coro = hass.services.async_call("media_player", "play_media", service_data)
-    hass.async_create_background_task(coro, "stream_assist_play_media")
+    hass.async_create_background_task(coro, "wake_and_stt_play_media")
 
 
 def run_forever(
@@ -218,8 +218,8 @@ def run_forever(
             except Exception as e:
                 _LOGGER.debug(f"run_assist error {type(e)}: {e}")
 
-    hass.async_create_background_task(run_stream(), "stream_assist_run_stream")
-    hass.async_create_background_task(run_assist(), "stream_assist_run_assist")
+    hass.async_create_background_task(run_stream(), "wake_and_stt_run_stream")
+    hass.async_create_background_task(run_assist(), "wake_and_stt_run_assist")
 
     return stt_stream.close
 
