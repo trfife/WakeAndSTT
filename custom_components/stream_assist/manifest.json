@@ -1,17 +1,17 @@
 {
-  "domain": "stream_assist",
+  "domain": "wake_and_stt",
   "name": "Stream Assist",
   "codeowners": [
-    "@AlexxIT"
+    "@trfife"
   ],
   "config_flow": true,
   "dependencies": [
     "stream",
     "assist_pipeline"
   ],
-  "documentation": "https://github.com/AlexxIT/StreamAssist",
+  "documentation": "https://github.com/trfife/WakeAndSTT",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/AlexxIT/StreamAssist/issues",
+  "issue_tracker": "https://github.com/trfife/WakeAndSTT/issues",
   "requirements": [],
   "version": "v2.1.0"
 }
