@@ -30,7 +30,6 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "wake_and_stt"
 EVENTS = ["wake", "stt", "intent", "tts"]
 
-
 def init_entity(entity: Entity, key: str, config_entry: ConfigEntry) -> str:
     unique_id = config_entry.entry_id[:7]
     num = 1 + EVENTS.index(key) if key in EVENTS else 0
@@ -46,7 +45,6 @@ def init_entity(entity: Entity, key: str, config_entry: ConfigEntry) -> str:
 
     return unique_id
 
-
 async def get_stream_source(hass: HomeAssistant, entity: str) -> str | None:
     try:
         component: EntityComponent = hass.data["camera"]
@@ -55,7 +53,6 @@ async def get_stream_source(hass: HomeAssistant, entity: str) -> str | None:
     except Exception as e:
         _LOGGER.error("get_stream_source", exc_info=e)
         return None
-
 
 async def stream_run(hass: HomeAssistant, data: dict, stt_stream: Stream) -> None:
     stream_kwargs = data.get("stream", {})
@@ -69,9 +66,7 @@ async def stream_run(hass: HomeAssistant, data: dict, stt_stream: Stream) -> Non
             return
 
     stt_stream.open(**stream_kwargs)
-
     await hass.async_add_executor_job(stt_stream.run)
-
 
 async def assist_run(
     hass: HomeAssistant,
@@ -80,42 +75,32 @@ async def assist_run(
     event_callback: PipelineEventCallback = None,
     stt_stream: Stream = None,
 ) -> dict:
-    # 1. Process assist_pipeline settings
     assist = data.get("assist", {})
 
     if pipeline_id := data.get("pipeline_id"):
-        # get pipeline from pipeline ID
         pipeline = assist_pipeline.async_get_pipeline(hass, pipeline_id)
     elif pipeline_json := assist.get("pipeline"):
-        # get pipeline from JSON
         pipeline = Pipeline.from_json(pipeline_json)
     else:
-        # get default pipeline
         pipeline = assist_pipeline.async_get_pipeline(hass)
 
-    # Set start_stage to WAKE_WORD if wake word entity exists, otherwise STT
     if pipeline.wake_word_entity:
         assist["start_stage"] = PipelineStage.WAKE_WORD
     else:
         assist["start_stage"] = PipelineStage.STT
 
-    # Set end_stage to STT to skip intent and TTS stages
     assist["end_stage"] = PipelineStage.STT
 
     player_entity_id = data.get("player_entity_id")
-
-    # 2. Setup Pipeline Run
     events = {}
 
     def internal_event_callback(event: PipelineEvent):
         _LOGGER.debug(f"event: {event}")
-
         events[event.type] = (
             {"data": event.data, "timestamp": event.timestamp}
             if event.data
             else {"timestamp": event.timestamp}
         )
-
         if event.type == PipelineEventType.STT_START:
             if player_entity_id and (media_id := data.get("stt_start_media")):
                 play_media(hass, player_entity_id, media_id, "audio")
@@ -131,19 +116,18 @@ async def assist_run(
         hass,
         context=context,
         pipeline=pipeline,
-        start_stage=assist["start_stage"],  # wake_word or stt
-        end_stage=assist["end_stage"],  # stt
+        start_stage=assist["start_stage"],
+        end_stage=assist["end_stage"],
         event_callback=internal_event_callback,
-        tts_audio_output=assist.get("tts_audio_output"),  # None, wav, mp3
+        tts_audio_output=assist.get("tts_audio_output"),
         wake_word_settings=new(WakeWordSettings, assist.get("wake_word_settings")),
         audio_settings=new(AudioSettings, assist.get("audio_settings")),
     )
 
-    # 3. Setup Pipeline Input
     pipeline_input = PipelineInput(
         run=pipeline_run,
         stt_metadata=stt.SpeechMetadata(
-            language="",  # set in async_pipeline_from_audio_stream
+            language="",
             format=stt.AudioFormats.WAV,
             codec=stt.AudioCodecs.PCM,
             bit_rate=stt.AudioBitRates.BITRATE_16,
@@ -151,34 +135,25 @@ async def assist_run(
             channel=stt.AudioChannels.CHANNEL_MONO,
         ),
         stt_stream=stt_stream,
-        intent_input=None,  # Disable intent input
-        tts_input=None,     # Disable TTS input
+        intent_input=None,
+        tts_input=None,
         conversation_id=assist.get("conversation_id"),
         device_id=assist.get("device_id"),
     )
 
     try:
-        # 4. Validate Pipeline
         await pipeline_input.validate()
-
-        # 5. Introduce a delay before starting STT
-        await asyncio.sleep(0.5)  # Delay for 0.5 seconds (adjust as needed)
-
-        # 6. Run Stream (optional)
+        await asyncio.sleep(0.5)  # Delay for 0.5 seconds before starting STT
         if stt_stream:
             stt_stream.start()
-
-        # 7. Run Pipeline
         await pipeline_input.execute()
-
     except AttributeError:
-        pass  # 'PipelineRun' object has no attribute 'stt_provider'
+        pass
     finally:
         if stt_stream:
             stt_stream.stop()
 
     return events
-
 
 def play_media(hass: HomeAssistant, entity_id: str, media_id: str, media_type: str):
     service_data = {
@@ -186,11 +161,8 @@ def play_media(hass: HomeAssistant, entity_id: str, media_id: str, media_type: s
         "media_content_id": media_player.async_process_play_media_url(hass, media_id),
         "media_content_type": media_type,
     }
-
-    # hass.services.call will block Hass
     coro = hass.services.async_call("media_player", "play_media", service_data)
     hass.async_create_background_task(coro, "wake_and_stt_play_media")
-
 
 def run_forever(
     hass: HomeAssistant,
@@ -226,9 +198,8 @@ def run_forever(
 
     return stt_stream.close
 
-
 def new(cls, kwargs: dict):
     if not kwargs:
         return cls()
-    kwargs are {k: v for k, v in kwargs.items() if hasattr(cls, k)}
+    kwargs = {k: v for k, v in kwargs.items() if hasattr(cls, k)}
     return cls(**kwargs)
