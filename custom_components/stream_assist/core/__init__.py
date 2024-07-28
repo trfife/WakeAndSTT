@@ -161,11 +161,14 @@ async def assist_run(
         # 4. Validate Pipeline
         await pipeline_input.validate()
 
-        # 5. Run Stream (optional)
+        # 5. Introduce a delay before starting STT
+        await asyncio.sleep(0.5)  # Delay for 0.5 seconds (adjust as needed)
+
+        # 6. Run Stream (optional)
         if stt_stream:
             stt_stream.start()
 
-        # 6. Run Pipeline
+        # 7. Run Pipeline
         await pipeline_input.execute()
 
     except AttributeError:
@@ -227,5 +230,5 @@ def run_forever(
 def new(cls, kwargs: dict):
     if not kwargs:
         return cls()
-    kwargs = {k: v for k, v in kwargs.items() if hasattr(cls, k)}
+    kwargs are {k: v for k, v in kwargs.items() if hasattr(cls, k)}
     return cls(**kwargs)
